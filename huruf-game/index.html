@@ -113,8 +113,9 @@ h1{font-size:2.1rem;line-height:1.1;margin:0;font-weight:800;color:var(--grape);
         <li><b>التكرار المتباعد:</b> الحروف الضعيفة تعود أكثر والمتقنة أقل.</li>
         <li><b>دفعات صغيرة وصعوبة تدريجية:</b> أربعة حروف في كل مجموعة وست مهام في الجولة، من المطابقة إلى السماع إلى الصورة إلى التتبّع ثم الحروف المتشابهة.</li>
       </ul>
-      <p style="margin:10px 0 0;font-size:.95rem;color:var(--muted)">جلسة من 10 إلى 15 دقيقة تكفي. النطق يستخدم الصوت العربي في جهازكم. إن لم يتوفر، تبقى اللعبة تعمل بالصورة واللمس.</p>
-      <div class="row" style="margin-top:14px"><button class="btn alt" id="resetBtn">مسح التقدّم</button></div>
+      <p style="margin:10px 0 0;font-size:.95rem;color:var(--muted)">جلسة من 10 إلى 15 دقيقة تكفي. البومة تتكلم بالصوت العربي في جهازكم إن وُجد، وإلا بصوت مضمّن في اللعبة. إن لم تسمعوا شيئًا، ارفعوا صوت الوسائط وأوقفوا الوضع الصامت في الهاتف.</p>
+      <div class="row" style="margin-top:14px"><button class="btn go" id="testBtn">🔊 جرّب الصوت</button><button class="btn alt" id="voiceBtn"></button></div>
+      <div class="row" style="margin-top:10px"><button class="btn alt" id="resetBtn">مسح التقدّم</button></div>
     </div>
   </section>
 </div>
@@ -139,8 +140,7 @@ const LEVELS=[
  {n:4,name:'أتتبّع',desc:'أرسم الحرف على اللوح',col:'#7b5cff'},
  {n:5,name:'بطل الحروف',desc:'حروف متشابهة، انتبه!',col:'#ff6b5b'}
 ];
-const ROUNDS=6, PRAISE=['أحسنت!','رائع!','ممتاز!','برافو!','عظيم!','يا بطل!'];
-const NUDGE=['هيا يا بطل، اختر مكعبًا','أنا أنتظرك، المس المكعب','اضغط عليّ لأعيد الصوت'];
+const ROUNDS=6;
 const COLS=['#7b5cff','#ff6b5b','#25c2a0','#ffa21f'];
 let save={stars:{},groups:1,m:{}};
 try{const s=JSON.parse(localStorage.getItem('huruf-v1')||'null');if(s)save=Object.assign(save,s)}catch(e){}
@@ -156,18 +156,37 @@ let muted=false,ac=null,token=0,mode='home',time=0,lastAct=0,talkUntil=0,S=null,
 const SS=('speechSynthesis' in window)?speechSynthesis:null;let voice=null;
 function findVoice(){try{voice=SS.getVoices().find(v=>/^ar/i.test(v.lang))||null}catch(e){}}
 if(SS){findVoice();try{SS.onvoiceschanged=findVoice}catch(e){}}
-function say(t){
-  if(muted)return;
-  talkUntil=time+Math.min(4.5,.5+t.length*.1);
-  if(!SS)return;
-  try{SS.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='ar-SA';if(voice)u.voice=voice;u.rate=.78;u.pitch=1.25;
-    u.onend=()=>{talkUntil=Math.min(talkUntil,time+.15)};SS.speak(u)}catch(e){}
+const CL={"off":{"s:ا":[0.0,0.844],"w:ا":[0.994,1.064],"s:ب":[2.207,0.852],"w:ب":[3.209,0.877],"s:م":[4.237,0.903],"w:م":[5.29,1.011],"s:و":[6.451,0.876],"w:و":[7.477,0.879],"s:ت":[8.506,1.336],"w:ت":[9.992,1.591],"s:ن":[11.733,0.912],"w:ن":[12.795,1.191],"s:ي":[14.136,0.886],"w:ي":[15.171,0.934],"s:ر":[16.256,0.902],"w:ر":[17.308,1.232],"s:س":[18.691,0.878],"w:س":[19.719,1.164],"s:ك":[21.033,0.879],"w:ك":[22.062,1.067],"s:ل":[23.279,0.868],"w:ل":[24.296,1.268],"s:ه":[25.715,0.864],"w:ه":[26.729,1.236],"s:د":[28.115,0.813],"w:د":[29.078,0.663],"s:ز":[29.89,0.915],"w:ز":[30.955,1.306],"s:ف":[32.411,0.882],"w:ف":[33.443,1.28],"s:ق":[34.873,0.869],"w:ق":[35.892,1.046],"s:ج":[37.088,0.84],"w:ج":[38.078,0.988],"s:ح":[39.216,0.975],"w:ح":[40.34,1.458],"s:خ":[41.948,0.92],"w:خ":[43.018,1.302],"s:ع":[44.47,1.019],"w:ع":[45.64,1.133],"s:ث":[46.923,0.891],"w:ث":[47.963,1.21],"s:ذ":[49.324,0.908],"w:ذ":[50.381,1.126],"s:ش":[51.657,0.904],"w:ش":[52.711,1.103],"s:ص":[53.964,0.972],"w:ص":[55.087,1.577],"s:ض":[56.813,0.813],"w:ض":[57.776,1.132],"s:ط":[59.058,0.856],"w:ط":[60.063,1.388],"s:ظ":[61.601,0.908],"w:ظ":[62.659,1.08],"s:غ":[63.889,0.907],"w:غ":[64.946,1.026],"where":[66.122,1.061],"this":[67.332,1.434],"seek":[68.917,1.46],"retry":[70.527,2.537],"starts":[73.214,1.538],"trace":[74.901,1.885],"p0":[76.936,1.078],"p1":[78.164,1.308],"p2":[79.623,1.351],"p3":[81.123,1.462],"p4":[82.735,1.366],"p5":[84.25,1.493],"streak":[85.893,3.307],"n0":[89.35,3.946],"n1":[93.446,3.674],"n2":[97.271,3.029],"hello":[100.45,7.025],"r3":[107.625,3.515],"r2":[111.291,2.618],"r1":[114.058,3.744],"newl":[117.952,3.012]},"txt":{"s:ا":"أَ","w:ا":"أسد","s:ب":"بَ","w:ب":"بطّة","s:م":"مَ","w:م":"موز","s:و":"وَ","w:و":"وردة","s:ت":"تَ","w:ت":"تفّاحة","s:ن":"نَ","w:ن":"نحلة","s:ي":"يَ","w:ي":"يد","s:ر":"رَ","w:ر":"ريشة","s:س":"سَ","w:س":"سمكة","s:ك":"كَ","w:ك":"كلب","s:ل":"لَ","w:ل":"ليمون","s:ه":"هَ","w:ه":"هدية","s:د":"دَ","w:د":"دبّ","s:ز":"زَ","w:ز":"زرافة","s:ف":"فَ","w:ف":"فيل","s:ق":"قَ","w:ق":"قمر","s:ج":"جَ","w:ج":"جمل","s:ح":"حَ","w:ح":"حصان","s:خ":"خَ","w:خ":"خروف","s:ع":"عَ","w:ع":"عنب","s:ث":"ثَ","w:ث":"ثعلب","s:ذ":"ذَ","w:ذ":"ذرة","s:ش":"شَ","w:ش":"شمس","s:ص":"صَ","w:ص":"صاروخ","s:ض":"ضَ","w:ض":"ضفدع","s:ط":"طَ","w:ط":"طائرة","s:ظ":"ظَ","w:ظ":"ظرف","s:غ":"غَ","w:غ":"غيمة","where":"أين","this":"هذا","seek":"نبحث عن","retry":"حاول مرة أخرى","starts":"بماذا تبدأ","trace":"تتبّع الحرف","p0":"أحسنت","p1":"رائع","p2":"ممتاز","p3":"برافو","p4":"عظيم","p5":"يا بطل","streak":"ثلاثة صحيحة متتالية","n0":"هيا يا بطل، اختر مكعبًا","n1":"أنا أنتظرك، المس المكعب","n2":"اضغط عليّ لأعيد الصوت","hello":"مرحبًا! أنا بومة الحروف. اختر مستوى لنلعب معًا","r3":"أنت بطل! ثلاث نجوم","r2":"أحسنت! نجمتان","r1":"جميل! نحاول مرة أخرى","newl":"وفتحنا حروفًا جديدة"}};
+let vbuf=null,vload=null,cur=[],ttsBroken=false,curU=null,sayId=0;
+function ctx(){try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume()}catch(e){}return ac}
+function loadVoice(){if(vload)return vload;const a=ctx();if(!a)return Promise.resolve(null);
+  return vload=fetch('voice.mp3').then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()}).then(b=>new Promise((res,rej)=>a.decodeAudioData(b,res,rej))).then(b=>vbuf=b).catch(()=>{vload=null;return null})}
+function stopClips(){cur.forEach(x=>{try{x.stop()}catch(e){}});cur=[]}
+function playClips(ids){const a=ctx();if(!a||!vbuf)return;stopClips();let t=a.currentTime+.03,tot=0;
+  ids.forEach(id=>{const o=CL.off[id];if(!o)return;const x=a.createBufferSource();x.buffer=vbuf;x.connect(a.destination);x.start(t,Math.max(0,o[0]-.02),o[1]+.08);cur.push(x);t+=o[1]+.1;tot+=o[1]+.1});
+  talkUntil=time+tot}
+function tts(text,my,onFail){
+  try{const busy=SS.speaking||SS.pending;if(busy)SS.cancel();
+    const u=curU=new SpeechSynthesisUtterance(text);u.lang=voice?voice.lang:'ar-SA';if(voice)u.voice=voice;u.rate=.78;u.pitch=1.25;
+    let started=false;u.onstart=()=>{started=true};u.onend=()=>{started=true;if(my===sayId)talkUntil=Math.min(talkUntil,time+.15)};
+    setTimeout(()=>{try{SS.speak(u)}catch(e){}},busy?90:0);
+    setTimeout(()=>{if(!started&&my===sayId){try{SS.cancel()}catch(e){}onFail()}},1800);
+  }catch(e){onFail()}
 }
-function tone(seq){if(muted)return;try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();let t=ac.currentTime;seq.forEach(([f,d])=>{const o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.16,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+d);t+=d*.8})}catch(e){}}
+// Speaks a list of clip ids. Uses the device's Arabic voice when it has one and it really starts; otherwise the bundled voice file.
+function speak(ids){
+  if(muted)return;const my=++sayId,text=ids.map(i=>CL.txt[i]).join('، ');
+  talkUntil=time+Math.min(6,.5+text.length*.1);stopClips();
+  const clips=()=>{if(my!==sayId)return;if(vbuf)playClips(ids);else loadVoice().then(()=>{if(my===sayId&&vbuf)playClips(ids)})};
+  if(SS&&voice&&!ttsBroken&&save.voice!=='clips')tts(text,my,()=>{ttsBroken=true;clips()});
+  else{try{if(SS&&(SS.speaking||SS.pending))SS.cancel()}catch(e){}clips()}
+}
+addEventListener('pointerdown',()=>{ctx();loadVoice()},true);
+function tone(seq){if(muted)return;try{if(!ctx())return;let t=ac.currentTime;seq.forEach(([f,d])=>{const o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.16,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+d);t+=d*.8})}catch(e){}}
 const ding=()=>tone([[660,.15],[880,.15],[1175,.3]]);
 const boop=()=>tone([[330,.18],[294,.25]]);
 const plop=()=>tone([[520,.08]]);
-function setMute(){muted=!muted;['#muteBtn','#gMute'].forEach(s=>$(s).textContent=muted?'🔇':'🔊');if(muted&&SS)try{SS.cancel()}catch(e){}}
+function setMute(){muted=!muted;['#muteBtn','#gMute'].forEach(s=>$(s).textContent=muted?'🔇':'🔊');if(muted){stopClips();sayId++;if(SS)try{SS.cancel()}catch(e){}}}
 $('#muteBtn').onclick=setMute;$('#gMute').onclick=setMute;
 
 /* ---------- 3D world ---------- */
@@ -277,7 +296,7 @@ function loop(now){
   const fl=u.hop>0?Math.sin(time*30)*.9:(talk?Math.sin(time*8)*.15:0);u.wl.rotation.z=-.15-Math.abs(fl);u.wr.rotation.z=.15+Math.abs(fl);
   const bl=(time%3.7)<.12?.1:1;u.eyes.forEach(e=>e.scale.y=bl);
   camera.position.set(Math.sin(time*.25)*.35,3.4+Math.sin(time*.2)*.1,D);camera.lookAt(0,2.6,0);
-  if(mode==='play'&&time-lastAct>11&&time>talkUntil+1){lastAct=time;say(NUDGE[rnd(NUDGE.length)]);owlHop()}
+  if(mode==='play'&&time-lastAct>11&&time>talkUntil+1){lastAct=time;speak(['n'+rnd(3)]);owlHop()}
   renderer.render(scene,camera);
 }
 
@@ -302,7 +321,7 @@ function home(){
     b.innerHTML=`<span class="n" style="background:${lv.col}">${open?lv.n:'🔒'}</span><span><b>${lv.name}</b><small>${lv.desc}</small></span><span class="st">${stars(save.stars[lv.n]||0)}</span>`;
     b.onclick=()=>play(lv.n);box.appendChild(b)});
   moveOwl(0,3.7,.9);
-  owlTap=()=>say('مرحبًا! أنا بومة الحروف. اختر مستوى لنلعب معًا');
+  owlTap=()=>speak(['hello']);
 }
 
 /* letter picking: weak letters come back more often */
@@ -319,7 +338,7 @@ function choices(t,n,level){
   return shuffle(out.concat(t));
 }
 function play(level){show('game');S={level,i:0,first:0,streak:0,used:[]};$('#dots').innerHTML='<i></i>'.repeat(ROUNDS);lastAct=time;nextRound()}
-$('#backBtn').onclick=()=>{if(SS)try{SS.cancel()}catch(e){}home()};
+$('#backBtn').onclick=()=>{stopClips();sayId++;if(SS)try{SS.cancel()}catch(e){}home()};
 const dot=c=>{const d=$('#dots').children[S.i];if(d)d.className=c};
 const bump=(ch,ok)=>{save.m[ch]=Math.max(0,Math.min(5,(save.m[ch]||0)+(ok?1:-1)))};
 function nextRound(){
@@ -332,21 +351,20 @@ function cheer(t,first){
   ding();owlHop();
   if(first){S.first++;S.streak++;bump(t.ch,true)}else{S.streak=0;bump(t.ch,false)}
   dot('ok');
-  const extra=S.streak===3?'ثلاثة صحيحة متتالية! ':'';
-  say(extra+PRAISE[rnd(PRAISE.length)]+' '+t.snd+'، '+t.word);
+  speak((S.streak===3?['streak']:[]).concat('p'+rnd(6),'s:'+t.ch,'w:'+t.ch));
 }
 async function choiceRound(t,my){
   clearRound();
   const lv=S.level,n=lv===1?2:lv===5?4:3,opts=choices(t,n,lv);
   $('#hint').textContent=lv===1?'اختر نفس الحرف':lv===2?'اسمع البومة، ثم اختر':'بماذا تبدأ الكلمة؟';
   const size=Math.min(1.55,V.w*.94/(n*1.18)),gap=size*1.18;
-  const promptText=lv===1?`أين ${t.snd}؟`:lv===2?`أين الحرف ${t.snd}؟`:`${t.word}. بماذا تبدأ ${t.word}؟`;
-  const prompt=()=>say(promptText);owlTap=prompt;
+  const promptIds=lv<=2?['where','s:'+t.ch]:['w:'+t.ch,'starts','w:'+t.ch];
+  const prompt=()=>speak(promptIds);owlTap=prompt;
   let sample=null;
   if(lv===2)moveOwl(0,2.9,1.15);
   else{moveOwl(-Math.min(1.25,V.w*.26),3.2,.72);
     sample=sampleBlock(t,Math.min(1.7,V.w*.36),lv===1);sample.position.set(Math.min(1.05,V.w*.22),9,0);sample.userData.baseY=4.25;
-    sample.userData.tap=()=>{say(lv===1?t.snd+'، '+t.word:t.word);pulse(sample)};pickables.push(sample);
+    sample.userData.tap=()=>{speak(lv===1?['s:'+t.ch,'w:'+t.ch]:['w:'+t.ch]);pulse(sample)};pickables.push(sample);
     tween(.7,k=>sample.position.y=9+(4.25-9)*k,bounce).then(()=>sample.userData.busy=false)}
   let wrong=0,locked=false;
   const bs=opts.map((o,k)=>{const b=letterBlock(o,k,size);b.position.set((k-(n-1)/2)*gap,8+k,1);b.userData.baseY=size/2;b.userData.l=o;
@@ -362,7 +380,7 @@ async function choiceRound(t,my){
         burst(b.position);await wait(1700);if(my!==token)return;S.i++;nextRound();
       }else{
         wrong++;boop();sink(b,true);
-        say(lv===1||lv===2?`هذا ${o.snd}. نبحث عن ${t.snd}`:`هذا ${o.snd}. حاول مرة أخرى`);
+        speak(lv<=2?['this','s:'+o.ch,'seek','s:'+t.ch]:['this','s:'+o.ch,'retry']);
         const right=bs.find(x=>x.userData.l.ch===t.ch);wait(900).then(()=>{if(my===token&&!locked)right.userData.hint=true});
       }
     };
@@ -391,7 +409,7 @@ function traceRound(t,my){
   scene.add(board);roundObjs.push(board);
   tween(.7,k=>board.position.y=9+(s/2+.25-9)*k,bounce);plop();
   moveOwl(0,s+.35,.5);
-  owlTap=()=>say(`تتبّع الحرف ${t.snd}`);
+  owlTap=()=>speak(['trace','s:'+t.ch]);
   let hit=0,done=false;const R=N*.085;
   x.lineWidth=N*.1;x.lineCap=x.lineJoin='round';x.strokeStyle='#ff6b5b';
   const mark=(a,b)=>{for(const p of pts)if(!p[2]&&(p[0]-a)**2+(p[1]-b)**2<R*R){p[2]=1;hit++}};
@@ -403,7 +421,7 @@ function traceRound(t,my){
     if(my!==token)return;S.i++;nextRound();
   };
   trace={board,drawing:false,last:null,
-    down(uv){if(done)return;this.drawing=true;if(!hit)say(t.snd);this.last=null;this.move(uv)},
+    down(uv){if(done)return;this.drawing=true;if(!hit)speak(['s:'+t.ch]);this.last=null;this.move(uv)},
     move(uv){if(done)return;const p=[uv.x*N,(1-uv.y)*N],l=this.last||[p[0]+.01,p[1]];
       x.beginPath();x.moveTo(l[0],l[1]);x.lineTo(p[0],p[1]);x.stroke();tx.needsUpdate=true;
       const dist=Math.hypot(p[0]-l[0],p[1]-l[1]),k=Math.max(1,Math.ceil(dist/(R*.6)));
@@ -428,8 +446,8 @@ function finish(){
     <p>${ok} من ${ROUNDS} من المحاولة الأولى</p>
     ${unlocked?`<p>🎁 حروف جديدة: <b style="font-size:1.4rem">${unlocked}</b></p>`:''}
     <div class="row" style="width:100%"><button class="btn alt" id="again">🔁 مرة أخرى</button>${next?'<button class="btn go" id="nxt">التالي ›</button>':''}<button class="btn" id="hm">🏠</button></div>`;
-  const msg=(s===3?'أنت بطل! ثلاث نجوم':s===2?'أحسنت! نجمتان':'جميل! نحاول مرة أخرى')+(unlocked?'. وفتحنا حروفًا جديدة':'');
-  say(msg);owlTap=()=>say(msg);
+  const msg=['r'+s].concat(unlocked?['newl']:[]);
+  speak(msg);owlTap=()=>speak(msg);
   $('#again').onclick=()=>play(lv);if(next)$('#nxt').onclick=()=>play(lv+1);$('#hm').onclick=home;
 }
 
@@ -439,15 +457,18 @@ function gallery(){
   const g=$('#galGrid');g.innerHTML='';
   const pick=(l,btn)=>{clearRound();g.querySelectorAll('.sel').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');
     const sz=Math.min(2,V.w*.42),b=sampleBlock(l,sz,true);b.position.set(Math.min(1.2,V.w*.24),4.6,0);b.userData.baseY=4.6;b.userData.busy=false;
-    const txt=l.snd+'، '+l.word;b.userData.tap=()=>{say(txt);pulse(b)};pickables.push(b);owlTap=()=>say(txt);say(txt);pulse(b)};
+    const txt=['s:'+l.ch,'w:'+l.ch];b.userData.tap=()=>{speak(txt);pulse(b)};pickables.push(b);owlTap=()=>speak(txt);speak(txt);pulse(b)};
   moveOwl(-Math.min(1.3,V.w*.27),3.7,.75);
   L.forEach((l,k)=>{const b=document.createElement('button');b.textContent=l.ch;if(l.g>save.groups)b.className='lock';b.onclick=()=>pick(l,b);g.appendChild(b);if(!k)pick(l,b)});
 }
 $('#galBtn').onclick=gallery;$('#galBack').onclick=home;
 $('#parentBtn').onclick=()=>show('parent');$('#parentBack').onclick=home;
+const voiceLabel=()=>$('#voiceBtn').textContent=save.voice==='clips'?'الصوت: المضمّن دائمًا':'الصوت: تلقائي';voiceLabel();
+$('#voiceBtn').onclick=()=>{save.voice=save.voice==='clips'?'auto':'clips';persist();voiceLabel();speak(['hello'])};
+$('#testBtn').onclick=()=>speak(['hello']);
 let sure=false;
 $('#resetBtn').onclick=e=>{if(!sure){sure=true;e.target.textContent='اضغط مرة أخرى للتأكيد';return}
-  save={stars:{},groups:1,m:{}};persist();sure=false;e.target.textContent='مسح التقدّم';home()};
+  save={stars:{},groups:1,m:{},voice:save.voice};persist();sure=false;e.target.textContent='مسح التقدّم';home()};
 
 (async()=>{
   try{if(!T)throw 0;init3D()}catch(e){$('#fail').hidden=false;$('#ui').hidden=true;return}
